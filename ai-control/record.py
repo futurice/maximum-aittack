@@ -33,7 +33,7 @@ def captureScreen(sct, id, path):
 def captureJoystick(id, path):
     imageName = getImageName(id)
     steering, throttle, brake = controller.getXZ()
-    print("steering", steering, "throttle", throttle, "throttlebrake", brake)
+    # print("steering", steering, "throttle", throttle, "throttlebrake", brake)
     with open(path + ('record_%d.json' % id), 'w') as f:
         f.write(
             '{"cam/image_array":"%s","user/throttle":%f,"user/angle":%f,"user/brake":%f,"user/mode":"user"}' % (
@@ -55,6 +55,9 @@ def record(name, limit=20000):
             if exc.errno != errno.EEXIST:
                 print('Recording name already exists. Please use another one')
                 raise
+    else:
+        print('Recording name already exists. Please use another one')
+        exit(1)
 
     with open(recordPath + 'meta.json', 'w') as f:
         f.write(
