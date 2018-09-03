@@ -15,6 +15,8 @@ Recording the training includes saving screencaps and corresponding controller v
 1. Trim possible bad data from the beginning and end of the recorded data under `logs/someidentifier`
 1. GOTO 1 or if enough data, start training
 
+###### TODO: preprocessing and augmenting the data
+
 #### Training the model
 Training takes your test data in and saves a model file to use for driving.
 
