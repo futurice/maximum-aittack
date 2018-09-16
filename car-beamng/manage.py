@@ -135,22 +135,30 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
             max_loop_count=cfg.MAX_LOOPS)
 
 def load_image(path):
+    print('Loading image', path)
     img = Image.open(path)
     return np.array(img)
 
-def get_generator(input_keys, output_keys, records):
+def get_generator(input_keys, output_keys, record_paths, meta, tub_path):
+    types = meta['types']
     while True:
-        for record in records:
-            inputs = [record[key] for key in input_keys]
-            outputs = [record[key] for key in output_keys]
-            yield inputs, outputs
+        for record_path in record_paths:
+            with open(record_path, 'r') as record_file:
+                record = json.load(record_file)
+                inputs = [record[key] for key in input_keys]
+                outputs = [record[key] for key in output_keys]
+                for i in range(len(inputs)):
+                    type = types[i]
+                    if (type == 'image_array'):
+                        inputs[i] = load_image("%s/%s" % (tub_path, inputs[i]))
+                yield inputs, outputs
 
-def get_batch_generator(input_keys, output_keys, records):
+def get_batch_generator(input_keys, output_keys, records, meta, tub_path):
     # Yield here a tuple (inputs, outputs)
     # both having arrays with batch_size length like:
     # 0: [input_1[batch_size],input_2[batch_size]]
     # 1: [output_1[batch_size],output_2[batch_size]]
-    record_gen = get_generator(input_keys, output_keys, records)
+    record_gen = get_generator(input_keys, output_keys, records, meta, tub_path)
     while True:
         raw_batch = [next(record_gen) for _ in range(cfg.BATCH_SIZE)]
         inputs = [[] for _ in range(len(input_keys))]
@@ -167,7 +175,6 @@ def get_train_val_gen(inputs, outputs, tub_names):
     print('Inputs', inputs)
     print('Outputs', outputs)
     tubs = glob.glob('%s' % tub_names)
-    records = []
     for tub in tubs:
         print(tub)
         with open('%s/meta.json' % tub, 'r') as f:
@@ -175,12 +182,7 @@ def get_train_val_gen(inputs, outputs, tub_names):
         print(meta)
         # TODO: Check if meta.json specs match with given inputs and outputs
         record_files = glob.glob('%s/record*.json' % tub)
-        print('Loading tub files')
-        for record in record_files:
-            with open(record, 'r') as record_file:
-                records.append(json.load(record_file))
-        print('Loaded', len(record_files))
-    return get_batch_generator(inputs, outputs, records), get_batch_generator(inputs, outputs, records)
+    return get_batch_generator(inputs, outputs, record_files, meta, tub), get_batch_generator(inputs, outputs, record_files, meta, tub)
 
 def train(cfg, tub_names, new_model_path, base_model_path=None):
     """
