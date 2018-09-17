@@ -20,7 +20,7 @@ import donkeycar as dk
 # import parts
 from donkeycar.parts.camera import PiCamera
 from donkeycar.parts.transform import Lambda
-from donkeycar.parts.keras import KerasCategorical
+from donkeycar.parts.keras import CustomModel
 from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
 from donkeycar.parts.datastore import TubGroup, TubWriter
 from donkeycar.parts.controller import LocalWebController, JoystickController
@@ -135,22 +135,26 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
             max_loop_count=cfg.MAX_LOOPS)
 
 def load_image(path):
-    print('Loading image', path)
     img = Image.open(path)
     return np.array(img)
 
 def get_generator(input_keys, output_keys, record_paths, meta, tub_path):
-    types = meta['types']
     while True:
         for record_path in record_paths:
             with open(record_path, 'r') as record_file:
                 record = json.load(record_file)
                 inputs = [record[key] for key in input_keys]
                 outputs = [record[key] for key in output_keys]
+                input_types = [meta[key] for key in input_keys]
+                # output_types = [meta[key] for key in output_keys]
                 for i in range(len(inputs)):
-                    type = types[i]
+                    type = input_types[i]
                     if (type == 'image_array'):
                         inputs[i] = load_image("%s/%s" % (tub_path, inputs[i]))
+                    elif (type == 'custom/prev_image'):
+                        # Currently previous images are in array, but there is only one
+                        imagePath = inputs[i][0]
+                        inputs[i] = load_image("%s/%s" % (tub_path, imagePath))
                 yield inputs, outputs
 
 def get_batch_generator(input_keys, output_keys, records, meta, tub_path):
@@ -168,7 +172,19 @@ def get_batch_generator(input_keys, output_keys, records, meta, tub_path):
                 inputs[i].append(rec[0][i])
             for i in range(len(output_keys)):
                 outputs[i].append(rec[1][i])
-        yield inputs, outputs
+        numpyInputs = [np.asarray(ar) for ar in inputs]
+        numpyOutputs = [np.asarray(ar) for ar in outputs]
+        yield numpyInputs, numpyOutputs
+
+def get_meta(path):
+    with open('%s/meta.json' % path, 'r') as f:
+        meta = json.load(f)
+        meta_dict = {}
+        for i, key in enumerate(meta['inputs']):
+            meta_dict[key] = meta['types'][i]
+        return meta_dict
+            # TODO: filter out values not listed in inputs or outputs
+
 
 def get_train_val_gen(inputs, outputs, tub_names):
     print('Loading data', tub_names)
@@ -177,12 +193,14 @@ def get_train_val_gen(inputs, outputs, tub_names):
     tubs = glob.glob('%s' % tub_names)
     for tub in tubs:
         print(tub)
-        with open('%s/meta.json' % tub, 'r') as f:
-            meta = json.load(f)
+        meta = get_meta(tub)
         print(meta)
         # TODO: Check if meta.json specs match with given inputs and outputs
         record_files = glob.glob('%s/record*.json' % tub)
-    return get_batch_generator(inputs, outputs, record_files, meta, tub), get_batch_generator(inputs, outputs, record_files, meta, tub)
+        np.random.shuffle(record_files)
+        split = int(round(len(record_files) * cfg.TRAIN_TEST_SPLIT))
+        train_files, validation_files = record_files[:split], record_files[split:]
+    return get_batch_generator(inputs, outputs, train_files, meta, tub), get_batch_generator(inputs, outputs, validation_files, meta, tub), len(record_files)
 
 def train(cfg, tub_names, new_model_path, base_model_path=None):
     """
@@ -194,7 +212,7 @@ def train(cfg, tub_names, new_model_path, base_model_path=None):
 
     new_model_path = os.path.expanduser(new_model_path)
 
-    kl = KerasCategorical()
+    kl = CustomModel()
     # Load base model if given
     if base_model_path is not None:
         base_model_path = os.path.expanduser(base_model_path)
@@ -208,26 +226,29 @@ def train(cfg, tub_names, new_model_path, base_model_path=None):
         print('No support for custom tubs yet')
         exit(0)
 
+    train_gen, val_gen, total_train = get_train_val_gen(inputs, outputs, tub_names)
 
-    # tubgroup = TubGroup(tub_names)
-    # train_gen, val_gen = tubgroup.get_train_val_gen(inputs, outputs,
+    #tubgroup = TubGroup(tub_names)
+    # orig_train_gen, orig_val_gen = tubgroup.get_train_val_gen(inputs, outputs,
     #                                                 batch_size=cfg.BATCH_SIZE,
     #                                                 train_frac=cfg.TRAIN_TEST_SPLIT)
 
-    train_gen, val_gen = get_train_val_gen(inputs, outputs, tub_names)
 
     # Testing the batch generation
-    for i in range(5):
-        next_item = next(train_gen)
-        print(next_item)
+    # for i in range(5):
+    #     new_batch = next(train_gen)
+        # orig_batch = next(orig_train_gen)
+        # print('Tick')
+    # total_records = len(tubgroup.df)
+    # total_train = int(total_records * cfg.TRAIN_TEST_SPLIT)
 
-    # steps_per_epoch = total_train // cfg.BATCH_SIZE
+    steps_per_epoch = total_train // cfg.BATCH_SIZE
 
-    # kl.train(train_gen,
-    #          val_gen,
-    #          saved_model_path=new_model_path,
-    #          steps=steps_per_epoch,
-    #          train_split=cfg.TRAIN_TEST_SPLIT)
+    kl.train(train_gen,
+             val_gen,
+             saved_model_path=new_model_path,
+             steps=steps_per_epoch,
+             train_split=cfg.TRAIN_TEST_SPLIT)
 
 
 if __name__ == '__main__':
