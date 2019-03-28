@@ -20,11 +20,11 @@ joystick = Joystick()
         
 def getXZ():
     joystick.update()
-    leftMushroonX = joystick.axis.get(0)
-    leftMushroonX = 0 if leftMushroonX is None else leftMushroonX
+    leftMushroomX = joystick.axis.get(0)
+    leftMushroomX = 0 if leftMushroomX is None else leftMushroomX / 32768
     rightTrigger = joystick.axis.get(5)
-    rightTrigger = 0 if rightTrigger is None else rightTrigger
-    leftTrigger = 0
-    leftTrigger = 0 if leftTrigger is None else leftTrigger
-    return leftMushroonX, rightTrigger, leftTrigger
+    rightTrigger = 0 if rightTrigger is None else (rightTrigger + 32767) / 65536
+    leftTrigger = joystick.axis.get(2)
+    leftTrigger = 0 if leftTrigger is None else (leftTrigger + 32767) / 65536
+    return round(leftMushroomX, 2), round(rightTrigger, 2), round(leftTrigger, 2)
 
