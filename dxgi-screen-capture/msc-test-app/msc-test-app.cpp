@@ -20,11 +20,10 @@ int main()
 
     uint8_t* buffer = new uint8_t[get_capture_width() * get_capture_height() * get_bytes_per_pixel()];
 
-    capture_frame(buffer);
-    Sleep(1000);
-    capture_frame(buffer);
-    Sleep(1000);
-    capture_frame(buffer);
+    for (int i = 0; i < 10; ++i) {
+        capture_frame(buffer);
+        Sleep(2000);
+    }
 
     delete[] buffer;
 

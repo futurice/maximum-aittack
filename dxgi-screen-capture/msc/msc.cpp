@@ -191,21 +191,30 @@ extern "C" __declspec(dllexport) int capture_frame(uint8_t* buffer) {
     DXGI_OUTDUPL_FRAME_INFO captureFrameInfo;
     IDXGIResource* dxgiResource = nullptr;
 
-    HRESULT frameCaptureResult = captureContext.dxgiOutputDuplication->AcquireNextFrame(10, &captureFrameInfo, &dxgiResource);
+    HRESULT frameCaptureResult = captureContext.dxgiOutputDuplication->AcquireNextFrame(100, &captureFrameInfo, &dxgiResource);
     if (FAILED(frameCaptureResult)) {
         std::stringstream error;
-        error << "IDXGIOutputDuplication::AcquireNextFrame() failed with  0x" << std::hex << frameCaptureResult;
+        error << "IDXGIOutputDuplication::AcquireNextFrame() failed with 0x" << std::hex << frameCaptureResult;
         captureContext.lastError = error.str();
         return frameCaptureResult;
     }
 
+    if (captureFrameInfo.LastPresentTime.QuadPart == 0) {
+        std::cout << "msc: no updates since last frame" << std::endl;
+        captureContext.dxgiOutputDuplication->ReleaseFrame();
+        return DXGI_ERROR_WAIT_TIMEOUT;
+    }
+
+    std::cout << "msc: frame capture successful, lastPresentTime=" << std::dec
+        << captureFrameInfo.LastPresentTime.QuadPart << ", accumulatedFrames=" << captureFrameInfo.AccumulatedFrames 
+        << ", desktopImageInSystemMemory=" << captureContext.dxgiOutputDuplicationDesc.DesktopImageInSystemMemory << std::endl;
+
     ID3D11Texture2D* captureTexture = nullptr;
     HRESULT captureTextureQiResult = dxgiResource->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&captureTexture);
-    dxgiResource->Release();
 
     if (FAILED(captureTextureQiResult)) {
         std::stringstream error;
-        error << "Capture texture QueryInterface() failed with  0x" << std::hex << captureTextureQiResult;
+        error << "Capture texture QueryInterface() failed with 0x" << std::hex << captureTextureQiResult;
         captureContext.lastError = error.str();
         return captureTextureQiResult;
     }
@@ -270,6 +279,8 @@ extern "C" __declspec(dllexport) int capture_frame(uint8_t* buffer) {
 
     stagingSurface->Unmap();
     stagingSurface->Release();
+
+    dxgiResource->Release();
     captureContext.dxgiOutputDuplication->ReleaseFrame();
 
     return 0;
@@ -295,7 +306,7 @@ HRESULT enumerateAdapters(IDXGIFactory1* dxgiFactory, std::vector<IDXGIAdapter1*
             releaseAllAdapters(dxgiAdapters);
 
             std::stringstream error;
-            error << "IDXGIFactory1::EnumAdapters1() failed with  0x" << std::hex << dxgiAdapterEnumerationResult;
+            error << "IDXGIFactory1::EnumAdapters1() failed with 0x" << std::hex << dxgiAdapterEnumerationResult;
             captureContext.lastError = error.str();
             result = dxgiAdapterEnumerationResult;
             break;
@@ -331,7 +342,7 @@ HRESULT enumerateOutputs(IDXGIAdapter1* dxgiAdapter, std::vector<IDXGIOutput1*>&
             releaseAllOutputs(dxgiOutputs);
 
             std::stringstream error;
-            error << "IDXGIAdapter1::EnumOutputs() failed with  0x" << std::hex << dxgiOutputEnumerationResult;
+            error << "IDXGIAdapter1::EnumOutputs() failed with 0x" << std::hex << dxgiOutputEnumerationResult;
             captureContext.lastError = error.str();
             result = dxgiOutputEnumerationResult;
             break;
@@ -377,6 +388,8 @@ HRESULT activateOutputDuplication(IDXGIAdapter1* dxgiAdapter, IDXGIOutput1* dxgi
     }
 
     (*dxgiOutputDuplication)->GetDesc(outputDuplicationDesc);
+
+    std::cout << "msc: created d3d device, featureLevel=" << std::hex << featureLevel << std::endl;
 
     return S_OK;
 }
