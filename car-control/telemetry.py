@@ -132,7 +132,8 @@ def test():
 
 
 if __name__ == '__main__':
+    reset()
     while True:
         update()
-        print(get_telemetry_value('m_speed'))
+        print(get_telemetry_value('m_totalDistance'), ';', get_telemetry_value('m_lapTime'), ';', get_telemetry_value('m_speed'), ';', get_telemetry_value('m_steer'), ';', get_telemetry_value('m_throttle'), ';', get_telemetry_value('m_brake'))
     # test()

@@ -131,4 +131,5 @@ dependencies:
   - pip:
     - keras-rl==0.4.2
     - pysdl2==0.9.7
+    - stable-baselines3==1.0
 prefix: C:\ProgramData\Anaconda3\envs\carcontrol
