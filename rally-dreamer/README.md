@@ -21,6 +21,7 @@ This project is meant to support any rally game, so long as it runs on Windows a
 
 Please pay attention to the following game settings:
 
+- Set the resolution to 1280 x 1024 windowed
 - Disable all HUD items by setting "Entire HUD" to "Off".
 - Cycle camera so that it does not display any parts of the car. This is done by pressing `C` by default.
 

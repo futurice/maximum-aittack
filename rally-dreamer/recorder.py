@@ -1,6 +1,7 @@
 # Records gameplay into an image and event series so that it can later be reused without
 # opening the game.
 
+import cv2
 import numpy as np
 import datetime
 import os
@@ -57,6 +58,8 @@ def update(telemetry_file):
 
     # get an updated image of the game
     screenshot = win_cap.get_screenshot()
+    # Original 1280 x 1024, half 640 x 512, half 320 x 256
+    screenshot = cv2.resize(screenshot, dsize=(320, 256), interpolation=cv2.INTER_CUBIC)
 
     draw_image = np.swapaxes(screenshot, 0, 1)
     draw_image = np.flip(draw_image, 2)
