@@ -17,10 +17,6 @@ This project is meant to support any rally game, so long as it runs on Windows a
 
 - Configure DiRT to send telemetry data. To do this, find the file `hardware_settings_config.xml` in the directory `Documents\My Games\DiRT Rally 2.0\hardwaresettings`, locate the `<udp />` tag and change it to `enabled=true`. Also make sure that the extra data depth is 2 by setting `extradata="2"`. [More details.](https://motionsystems.eu/2020/03/dirt-udp-proxy-fana-leds-2)
 
-```commandline
-<motion enabled="true" ip="127.0.0.1" port="20777" delay="1" extradata="1" />
-```
-
 ## Configuring the game
 
 Please pay attention to the following game settings:
