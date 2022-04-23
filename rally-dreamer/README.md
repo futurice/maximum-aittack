@@ -10,8 +10,29 @@ This project is meant to support any rally game, so long as it runs on Windows a
 
 ## Requirements
 
-- PyCharm
+- PyCharm 2022.1 or newer
 - Python 3.8
+
+## Setup
+
+- Configure DiRT to send telemetry data. To do this, find the file `hardware_settings_config.xml` in the directory `Documents\My Games\DiRT Rally 2.0\hardwaresettings`, locate the `<udp />` tag and change it to `enabled=true`. Also make sure that the extra data depth is 2 by setting `extradata="2"`. [More details.](https://motionsystems.eu/2020/03/dirt-udp-proxy-fana-leds-2)
+
+```commandline
+<motion enabled="true" ip="127.0.0.1" port="20777" delay="1" extradata="1" />
+```
+
+## Configuring the game
+
+Please pay attention to the following game settings:
+
+- Disable all HUD items by setting "Entire HUD" to "Off".
+- Cycle camera so that it does not display any parts of the car. This is done by pressing `C` by default.
+
+## Components
+
+### recorder.py
+
+Records gameplay to the `./recordings` folder. A sub folder for the recording session is created. Full telemetries are stored to a file `telemetry.txt` with one snapshot on one line and the respective screen captures are stored as numpy data files to the `images` folder. Recording is only done when lap time is over 0 and the game returns telemetry (is not paused).
 
 ## Literature
 

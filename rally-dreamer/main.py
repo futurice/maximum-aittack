@@ -34,7 +34,9 @@ def update():
     # get an updated image of the game
     screenshot = win_cap.get_screenshot()
 
-    draw_frame.setImage(np.swapaxes(screenshot, 0, 1))
+    draw_image = np.swapaxes(screenshot, 0, 1)
+    draw_image = np.flip(draw_image, 2)
+    draw_frame.setImage(draw_image)
 
     QApplication.processEvents()
 
