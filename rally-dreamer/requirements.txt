@@ -3,3 +3,5 @@ numpy==1.22.3
 pyqtgraph==0.12.4
 PyQt6==6.3.0
 opencv-python==4.5.5.64
+tensorflow==2.8.0
+keras==2.8.0
